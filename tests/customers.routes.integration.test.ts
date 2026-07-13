@@ -35,3 +35,45 @@ describe('GET /customers/count', () => {
     expect(response.body).toEqual({ count: before });
   });
 });
+
+describe('GET /customers/by-distance', () => {
+  it('orders ascending by distance to Budapest, nulls last, ties by name', async () => {
+    await prisma.customer.createMany({
+      data: [
+        { name: fixtureNames[0], telepules: 'Budapest', countryCode: 'HU', lat: 47.4979, lon: 19.0402 },
+        { name: fixtureNames[1], telepules: 'Vienna', countryCode: 'AT', lat: 48.2085, lon: 16.3721 },
+        { name: fixtureNames[2], telepules: 'Nowhere', countryCode: 'ZZ', lat: null, lon: null },
+      ],
+    });
+
+    const response = await request(app).get('/customers/by-distance');
+    expect(response.status).toBe(200);
+
+    const fixtureOnly = response.body.filter((c: { name: string }) => fixtureNames.includes(c.name));
+    expect(fixtureOnly.map((c: { name: string }) => c.name)).toEqual([
+      fixtureNames[0],
+      fixtureNames[1],
+      fixtureNames[2],
+    ]);
+    expect(fixtureOnly[0].distanceKm).toBe(0);
+    expect(fixtureOnly[1].distanceKm).toBeGreaterThan(200);
+    expect(fixtureOnly[1].distanceKm).toBeLessThan(225);
+    expect(fixtureOnly[2].distanceKm).toBeNull();
+  });
+
+  it('breaks ties by name when distances are equal', async () => {
+    await prisma.customer.createMany({
+      data: [
+        { name: fixtureNames[1], telepules: 'Vienna', countryCode: 'AT', lat: 48.2085, lon: 16.3721 },
+        { name: fixtureNames[0], telepules: 'Vienna', countryCode: 'AT', lat: 48.2085, lon: 16.3721 },
+      ],
+    });
+
+    const response = await request(app).get('/customers/by-distance');
+    const fixtureOnly = response.body.filter((c: { name: string }) => fixtureNames.includes(c.name));
+
+    expect(fixtureOnly[0].name).toBe(fixtureNames[0]);
+    expect(fixtureOnly[1].name).toBe(fixtureNames[1]);
+    expect(fixtureOnly[0].distanceKm).toBe(fixtureOnly[1].distanceKm);
+  });
+});
