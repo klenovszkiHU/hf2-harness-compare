@@ -1,0 +1,122 @@
+[
+  {
+    "city": "Budapest",
+    "countryCode": "HU",
+    "lat": 47.4979,
+    "lon": 19.0402,
+    "normalizedCity": "budapest",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Vienna",
+    "countryCode": "AT",
+    "lat": 48.2085,
+    "lon": 16.3721,
+    "normalizedCity": "vienna",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Munich",
+    "countryCode": "DE",
+    "lat": 48.1374,
+    "lon": 11.5755,
+    "normalizedCity": "munich",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Milan",
+    "countryCode": "IT",
+    "lat": 45.4643,
+    "lon": 9.1895,
+    "normalizedCity": "milan",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Barcelona",
+    "countryCode": "ES",
+    "lat": 41.3888,
+    "lon": 2.159,
+    "normalizedCity": "barcelona",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Lyon",
+    "countryCode": "FR",
+    "lat": 45.7491,
+    "lon": 4.8479,
+    "normalizedCity": "lyon",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Kraków",
+    "countryCode": "PL",
+    "lat": 50.0614,
+    "lon": 19.9366,
+    "normalizedCity": "krakow",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Prague",
+    "countryCode": "CZ",
+    "lat": 50.088,
+    "lon": 14.4208,
+    "normalizedCity": "prague",
+    "source": "latitude.to"
+  },
+  {
+    "city": "Lisbon",
+    "countryCode": "PT",
+    "lat": 38.7223,
+    "lon": -9.1393,
+    "normalizedCity": "lisbon",
+    "source": "latlng.app"
+  },
+  {
+    "city": "Amsterdam",
+    "countryCode": "NL",
+    "lat": 52.3779,
+    "lon": 4.8971,
+    "normalizedCity": "amsterdam",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Stockholm",
+    "countryCode": "SE",
+    "lat": 59.3294,
+    "lon": 18.0687,
+    "normalizedCity": "stockholm",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Ljubljana",
+    "countryCode": "SI",
+    "lat": 46.0511,
+    "lon": 14.5051,
+    "normalizedCity": "ljubljana",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Bucharest",
+    "countryCode": "RO",
+    "lat": 44.4397,
+    "lon": 26.0963,
+    "normalizedCity": "bucharest",
+    "source": "geodatos.net"
+  },
+  {
+    "city": "Dublin",
+    "countryCode": "IE",
+    "lat": 53.3331,
+    "lon": -6.2489,
+    "normalizedCity": "dublin",
+    "source": "latitude.to"
+  },
+  {
+    "city": "Copenhagen",
+    "countryCode": "DK",
+    "lat": 55.6759,
+    "lon": 12.5655,
+    "normalizedCity": "copenhagen",
+    "source": "geodatos.net"
+  }
+]
