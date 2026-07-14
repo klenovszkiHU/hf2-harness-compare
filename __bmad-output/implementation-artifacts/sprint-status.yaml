@@ -49,7 +49,7 @@ story_location: __bmad-output/implementation-artifacts
 
 development_status:
   epic-1: in-progress
-  1-1-idempotent-customer-seed-geocoding: ready-for-dev
+  1-1-idempotent-customer-seed-geocoding: review
   1-2-customer-count-endpoint: backlog
   1-3-customers-ranked-by-distance-endpoint: backlog
   epic-1-retrospective: optional

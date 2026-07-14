@@ -1,0 +1,21 @@
+{
+  "name": "hf2-customer-distance-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Small offline REST service over Postgres: idempotent seed/geocode, /customers/count, /customers/by-distance",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "migrate": "node-pg-migrate up",
+    "seed": "node scripts/seed.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "node-pg-migrate": "8.0.4",
+    "pg": "8.22.0"
+  }
+}
