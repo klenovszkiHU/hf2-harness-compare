@@ -17,3 +17,7 @@ Mivel a projekt SPEC.md-t használt PRD.md helyett, a szkill első lépése ezt 
 ## bmad-check-implementation-readiness — readiness riport (2026-07-14)
 
 Csak 1 kérdést tett fel (a SPEC.md/PRD-helyettesítés megerősítése, ugyanaz a mintázat, mint az epics-lépésnél), korrekció nem történt. A 6 lépéses autonóm ellenőrzés (dokumentum-felfedezés, PRD/SPEC-elemzés, epic-lefedettség, UX-illeszkedés, epic/story minőség, végső összegzés) 0 kritikus és 0 major hibát talált, viszont 2 apró, nem blokkoló hiányosságot igen: Story 1.2-ből hiányzik egy explicit AC a szerver-bootstrapra (Express/PORT), Story 1.1-ből a `budget`/`note` mezők átvitelére. Végeredmény: **READY**, FR-lefedettség 100%.
+
+## bmad-sprint-planning — sprint-status.yaml generálása (2026-07-14)
+
+Teljesen autonóm lefutás, egyetlen kérdés vagy megerősítés sem szükséges — nincs is menü ebben a skillben. Az `epics.md`-ből 1 epicet és 3 story-t olvasott ki, mindet `backlog` státusszal hozta létre (még egy story-fájl sem létezik az implementation-artifacts alatt), plusz egy `epic-1-retrospective: optional` bejegyzést. Nem volt korrekció, nem volt meglepetés — tiszta gépies leképezés.
