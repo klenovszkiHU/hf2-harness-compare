@@ -1,6 +1,10 @@
+---
+baseline_commit: 9465ba7dd3fe4c8ea19f7e5e2b2f3b292a43f140
+---
+
 # Story 1.2: Customer Count Endpoint
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -18,28 +22,28 @@ so that I know how many customers are currently seeded.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `src/server.js` — Express app bootstrap (AC: #3; this is the FIRST story that needs a running server)
-  - [ ] Create the Express app (`express@5.2.1`, already a dependency), mount the router from `src/routes/customers.js` (Task 2)
-  - [ ] **Export the `app` object** (`module.exports = app`) and only call `app.listen(...)` when the file is run directly (`if (require.main === module) { app.listen(...) }`). This lets Task 4's integration test import `app` and drive it without binding a real port — no `supertest` or any new test-HTTP-client dependency; use Node's built-in `http` module or the global `fetch` against a test-only `app.listen(0)` (port `0` = OS-assigned free port, avoids collisions with leftover processes from previous test runs)
-  - [ ] Read `PORT` from `process.env.PORT`, default to `3000` if unset — only used in the `require.main === module` listen branch. This is the only module besides `src/db/pool.js` (which owns `DATABASE_URL`) that reads a config env var — no other file reads `process.env.PORT` (AD-7)
-  - [ ] Add one Express error-handling middleware (mounted last): any unhandled route/DB error responds `500` with `{"error": "internal error"}` (`res.json(...)`, not `res.end(JSON.stringify(...))`), logs the real error via `console.error` (AC #5, Consistency Conventions — Errors)
-  - [ ] No other startup side effects; does NOT call `seedService` or anything from Story 1.1's seed path (AD-2 — server never seeds on boot)
-  - [ ] Do not add a catch-all/wildcard route — unmounted paths (e.g. `GET /`) fall through to Express's default 404, which is sufficient; a custom catch-all risks colliding with Story 1.3's future `/customers/by-distance` route on the same router
-- [ ] Task 2: `src/routes/customers.js` — route wiring (AC: #1)
-  - [ ] Define `GET /customers/count`, delegate to a service function (Task 3); the route handler only parses the (empty) request and shapes the JSON response via `res.json(...)` — no SQL here (paradigm: routes → services → db)
-  - [ ] Wrap the handler so a thrown/rejected error from the service reaches Task 1's error middleware (e.g. `async` handler + `next(err)` in a `catch`, since Express 5 does auto-forward rejected async handlers to error middleware — verify this against the installed `express@5.2.1` behavior rather than assuming)
-  - [ ] Mount this router under `/customers` in `src/server.js`
-- [ ] Task 3: `src/services/customerService.js` — count query (AC: #1, #2, #4)
-  - [ ] Export a `count()` function that runs `SELECT COUNT(*) FROM customers` via the shared `src/db/pool.js` (no new pool, no new `DATABASE_URL` read — reuse the existing module from Story 1.1)
-  - [ ] **Coerce the query result to a JS `number`** before returning — `pg` returns `COUNT(*)` as a string by default; `Number(result.rows[0].count)` (or equivalent) is required, not optional (AD-9's explicit rule). On an empty table this must resolve to `0` (a number), not `null` or `"0"` (AC #4)
-  - [ ] No caching layer, no memoization — every call re-runs the query (AC #2)
-  - [ ] Let a query failure (e.g. connection down) propagate as a rejected promise — do not swallow it here; Task 1/2's error handling turns it into the `500` response (AC #5)
-- [ ] Task 4: Automated tests (uses `node:test`, per AD-8 — same runner already established in Story 1.1; no `supertest` or other new test-HTTP dependency)
-  - [ ] Test: `customerService.count()` returns a JS `number` type (`typeof result === 'number'`), not a string — this is the one behavior most likely to regress silently since `pg` naturally returns strings for aggregates
-  - [ ] Test: `customerService.count()` returns `0` (not `null`) when the table is empty (AC #4) — truncate the table for this test case, then re-seed or restore afterward so it doesn't affect other tests
-  - [ ] Integration test: import the exported `app` (Task 1), start it on an ephemeral port (`app.listen(0)`), `GET /customers/count` returns `{"count": <current row count>}` matching a direct `SELECT COUNT(*)` against the same live Postgres instance; close the server after the test
-  - [ ] Test: two consecutive calls to `count()` reflect the same value when the table hasn't changed (guards against any accidental caching being introduced later — AC #2)
-  - [ ] Test: `PORT` env var — with `PORT` unset, the app's listen call would default to `3000` (assert on the value passed internally, or read it back from the started server's `.address().port` when `PORT` is deliberately set to a known value before starting) (AC #3)
+- [x] Task 1: `src/server.js` — Express app bootstrap (AC: #3; this is the FIRST story that needs a running server)
+  - [x] Create the Express app (`express@5.2.1`, already a dependency), mount the router from `src/routes/customers.js` (Task 2)
+  - [x] **Export the `app` object** (`module.exports = app`) and only call `app.listen(...)` when the file is run directly (`if (require.main === module) { app.listen(...) }`). This lets Task 4's integration test import `app` and drive it without binding a real port — no `supertest` or any new test-HTTP-client dependency; use Node's built-in `http` module or the global `fetch` against a test-only `app.listen(0)` (port `0` = OS-assigned free port, avoids collisions with leftover processes from previous test runs)
+  - [x] Read `PORT` from `process.env.PORT`, default to `3000` if unset — only used in the `require.main === module` listen branch. This is the only module besides `src/db/pool.js` (which owns `DATABASE_URL`) that reads a config env var — no other file reads `process.env.PORT` (AD-7)
+  - [x] Add one Express error-handling middleware (mounted last): any unhandled route/DB error responds `500` with `{"error": "internal error"}` (`res.json(...)`, not `res.end(JSON.stringify(...))`), logs the real error via `console.error` (AC #5, Consistency Conventions — Errors)
+  - [x] No other startup side effects; does NOT call `seedService` or anything from Story 1.1's seed path (AD-2 — server never seeds on boot)
+  - [x] Do not add a catch-all/wildcard route — unmounted paths (e.g. `GET /`) fall through to Express's default 404, which is sufficient; a custom catch-all risks colliding with Story 1.3's future `/customers/by-distance` route on the same router
+- [x] Task 2: `src/routes/customers.js` — route wiring (AC: #1)
+  - [x] Define `GET /customers/count`, delegate to a service function (Task 3); the route handler only parses the (empty) request and shapes the JSON response via `res.json(...)` — no SQL here (paradigm: routes → services → db)
+  - [x] Wrap the handler so a thrown/rejected error from the service reaches Task 1's error middleware (e.g. `async` handler + `next(err)` in a `catch`, since Express 5 does auto-forward rejected async handlers to error middleware — verify this against the installed `express@5.2.1` behavior rather than assuming)
+  - [x] Mount this router under `/customers` in `src/server.js`
+- [x] Task 3: `src/services/customerService.js` — count query (AC: #1, #2, #4)
+  - [x] Export a `count()` function that runs `SELECT COUNT(*) FROM customers` via the shared `src/db/pool.js` (no new pool, no new `DATABASE_URL` read — reuse the existing module from Story 1.1)
+  - [x] **Coerce the query result to a JS `number`** before returning — `pg` returns `COUNT(*)` as a string by default; `Number(result.rows[0].count)` (or equivalent) is required, not optional (AD-9's explicit rule). On an empty table this must resolve to `0` (a number), not `null` or `"0"` (AC #4)
+  - [x] No caching layer, no memoization — every call re-runs the query (AC #2)
+  - [x] Let a query failure (e.g. connection down) propagate as a rejected promise — do not swallow it here; Task 1/2's error handling turns it into the `500` response (AC #5)
+- [x] Task 4: Automated tests (uses `node:test`, per AD-8 — same runner already established in Story 1.1; no `supertest` or other new test-HTTP dependency)
+  - [x] Test: `customerService.count()` returns a JS `number` type (`typeof result === 'number'`), not a string — this is the one behavior most likely to regress silently since `pg` naturally returns strings for aggregates
+  - [x] Test: `customerService.count()` returns `0` (not `null`) when the table is empty (AC #4) — implemented via an uncommitted transaction (`BEGIN` → `DELETE` → count via the same client → `ROLLBACK`) so the empty-table state is never visible to other concurrently-running test files and never needs restoring
+  - [x] Integration test: import the exported `app` (Task 1), start it on an ephemeral port (`app.listen(0)`), `GET /customers/count` returns `{"count": <current row count>}` matching a direct `SELECT COUNT(*)` against the same live Postgres instance; close the server after the test
+  - [x] Test: two consecutive calls to `count()` reflect the same value when the table hasn't changed (guards against any accidental caching being introduced later — AC #2)
+  - [x] Test: `PORT` env var — extracted a small `resolvePort()` function (exported alongside `app`) so default-3000 and env-override behavior are both directly unit-tested without process/module-cache gymnastics (AC #3)
 
 ## Dev Notes
 
@@ -67,12 +71,29 @@ This story creates: `src/server.js`, `src/routes/customers.js` (only the `/custo
 
 ### Agent Model Used
 
-_(to be filled in by the dev agent during implementation)_
+claude-sonnet-5 (Claude Code)
 
 ### Debug Log References
+
+- Manually smoke-tested `src/server.js` end-to-end before writing automated tests: started it on a throwaway port against the live Postgres instance, `curl`'d `/customers/count` → `{"count":15}` (200), and an unmounted path → 404 (Express's default, confirming no catch-all is needed).
+- `customerService.count()` was given an optional `queryable` parameter (defaults to the shared pool) specifically so the empty-table test (AC #4) could run inside an uncommitted transaction on a dedicated client — this keeps the DELETE invisible to every other connection (including other test files' connections), so the destructive-looking test never actually mutates the shared dev database or races with other tests.
+- `resolvePort()` was extracted out of the `require.main === module` guard as its own exported function so the PORT-default and PORT-override behavior (AC #3) could be unit-tested directly, instead of relying on fragile process-spawning or `require.cache` manipulation.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created
+- All 5 ACs verified: migration/count-shape (AC #1, `{"count": N}` as a number), no caching (AC #2, every call re-queries), PORT default/override (AC #3, unit-tested via `resolvePort()`), empty-table → `0` (AC #4, transactional test), DB-error → 500 (AC #5, error-handling middleware wired and route forwards rejections via `next(err)`)
+- 17/17 automated tests pass in a clean shell (`unset DATABASE_URL PORT` before `npm test`) — explicitly re-verified this per Story 1.1's code-review learning, not assumed from a working session's leftover env
+- `customers` table confirmed unchanged (still 15 rows) after the full test run, including the empty-table transactional test
 
 ### File List
+
+- `src/server.js` (new)
+- `src/routes/customers.js` (new)
+- `src/services/customerService.js` (new)
+- `test/customerService.test.js` (new)
+- `test/customersRoute.test.js` (new)
+
+## Change Log
+
+- 2026-07-14: Implemented Story 1.2 end-to-end (Express bootstrap, route, service, tests). All 5 ACs satisfied and verified against the live Postgres instance; 17/17 automated tests passing in a clean shell. Status moved to `review`.
