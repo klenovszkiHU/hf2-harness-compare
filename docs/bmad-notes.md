@@ -21,3 +21,7 @@ Csak 1 kérdést tett fel (a SPEC.md/PRD-helyettesítés megerősítése, ugyana
 ## bmad-sprint-planning — sprint-status.yaml generálása (2026-07-14)
 
 Teljesen autonóm lefutás, egyetlen kérdés vagy megerősítés sem szükséges — nincs is menü ebben a skillben. Az `epics.md`-ből 1 epicet és 3 story-t olvasott ki, mindet `backlog` státusszal hozta létre (még egy story-fájl sem létezik az implementation-artifacts alatt), plusz egy `epic-1-retrospective: optional` bejegyzést. Nem volt korrekció, nem volt meglepetés — tiszta gépies leképezés.
+
+## bmad-create-story — Story 1.1 kontextusfájl (2026-07-14)
+
+Egyetlen kérdést tett fel előzetesen (szubágens-használat engedélyezése a teljes workflow-futásra), amit a felhasználó jóváhagyott. A friss kontextusú, szubágenssel futtatott minőségi review 2 kritikus hibát talált a megírt story-ban — ezek voltak az igazi korrekciós pontok: (1) a fájlútvonalak inkonzisztensek voltak (`lib/`/`services/` a `src/lib/`/`src/services/` helyett), (2) a `telepules` oszlop értéke nem volt egyértelműen az eredeti (nem normalizált) városnév, összekeverhető lett volna a lookuphoz használt normalizált kulccsal. Mindkettőt javította, plusz 3 kiegészítést épített be (automatizált node:test tesztek az idempotenciára/null-esetre, countryCode-eltérés kezelése, README-hézag jelzése az epic szintjén). A sprint-status.yaml frissült: epic-1 → in-progress, Story 1.1 → ready-for-dev.
