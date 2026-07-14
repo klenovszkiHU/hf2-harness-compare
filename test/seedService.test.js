@@ -41,3 +41,23 @@ test('buildCustomerRow stores the original, unnormalized city string in telepule
 
   assert.equal(row.telepules, 'VIENNA  ');
 });
+
+test('buildCustomerRow does not throw and returns null lat/lon when location is missing entirely', () => {
+  const customer = { name: 'Test Person', budget: 100, note: null };
+
+  assert.doesNotThrow(() => buildCustomerRow(customer, referenceCities));
+
+  const row = buildCustomerRow(customer, referenceCities);
+  assert.equal(row.lat, null);
+  assert.equal(row.lon, null);
+});
+
+test('buildCustomerRow does not throw and returns null lat/lon when location.city is missing', () => {
+  const customer = { name: 'Test Person', budget: 100, location: { countryCode: 'AT' }, note: null };
+
+  assert.doesNotThrow(() => buildCustomerRow(customer, referenceCities));
+
+  const row = buildCustomerRow(customer, referenceCities);
+  assert.equal(row.lat, null);
+  assert.equal(row.lon, null);
+});

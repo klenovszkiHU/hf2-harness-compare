@@ -4,7 +4,7 @@ baseline_commit: 3eee25af1e18cacf54dfd51bdd29065b81361052
 
 # Story 1.1: Idempotent Customer Seed & Geocoding
 
-Status: review
+Status: done
 
 ## Story
 
@@ -46,6 +46,17 @@ so that the API endpoints (Stories 1.2/1.3) have complete, correct data to serve
   - [x] Test: a customer whose city has no reference match ends up with `lat`/`lon = null` and does not throw (AC #2's miss path — not naturally exercised by the real 15-row dataset, see Dev Notes)
   - [x] Test: `src/lib/normalizeCity.js` normalizes `"Kraków"` → `"krakow"` (accent-stripping sanity check)
 
+### Review Findings
+
+- [x] [Review][Patch] `DATABASE_URL` is never loaded automatically — `npm test`/`migrate`/`seed`/`start` all silently depend on a manually-exported env var [package.json; src/db/pool.js]
+- [x] [Review][Patch] Ambiguous logging — "no reference match" and "normalizedCity match but countryCode differs" log an identical message, indistinguishable in practice [src/services/seedService.js]
+- [x] [Review][Patch] No guard against a malformed `customer.location` — destructuring `undefined` throws a raw `TypeError` and kills the whole seed loop instead of logging and continuing [src/services/seedService.js]
+- [x] [Review][Patch] `normalizeCity`'s diacritics-stripping regex is an unexplained raw Unicode range with no comment [src/lib/normalizeCity.js]
+- [x] [Review][Defer] Test isolation — `seedIdempotency.test.js` runs against the live dev Postgres instance with no dedicated test DB or fixture teardown [test/seedIdempotency.test.js] — deferred, pre-existing: no test-DB strategy was specified in SPEC/ARCHITECTURE-SPINE for this benchmark-scale project, and `ON CONFLICT DO NOTHING` makes repeated runs non-destructive
+- [x] [Review][Defer] A duplicate `(name, telepules)` pair within `seed-customers.json` would silently drop the second row's `budget`/`note` via `ON CONFLICT DO NOTHING` [src/services/seedService.js] — deferred, pre-existing: inherent to AD-4's chosen idempotency mechanism, not reachable with the current 15-row dataset (verified no duplicates)
+- [x] [Review][Defer] A reference-file entry with a duplicate `(normalizedCity, countryCode)` pair would resolve non-deterministically to the first match [src/services/seedService.js] — deferred, pre-existing: a data-integrity assumption on `reference/city-coordinates.json`, out of this story's scope, not reachable with current data (verified unique)
+- [x] [Review][Defer] `seed()` has no per-row error handling or transaction — a mid-loop query failure leaves partial state [src/services/seedService.js] — deferred, pre-existing: no AC requires transactional atomicity for a 15-row static seed; adding it now would be scope creep
+
 ## Dev Notes
 
 - **Architecture is fully fixed for this story** — read `__bmad-output/planning-artifacts/architecture/architecture-hf2-customer-distance-service-2026-07-14/ARCHITECTURE-SPINE.md` in full before starting. Relevant ADs: AD-1 (no ORM, raw `pg`), AD-2 (seed is a separate process), AD-3 (node-pg-migrate), AD-4 (DB-level idempotency), AD-6 (single normalization owner), AD-7 (single config module), AD-10 (offline-only — no HTTP client to any external service, no LLM SDK dependency, ever).
@@ -82,29 +93,31 @@ claude-sonnet-5 (Claude Code)
 - Discovered a pre-existing `hf2-postgres` Docker container (port 5434, db/user/pass `hf2`) holding a stale Prisma-based `customers` schema from 2026-07-13 (before this branch's BMad rebuild reset). Confirmed with the user and dropped `customers` + `_prisma_migrations` before migrating.
 - `node-pg-migrate create` scaffolds ESM (`export const`) migration files by default regardless of `package.json`'s `"type": "commonjs"`; rewrote the generated migration to CommonJS (`exports.up`/`exports.down`) to match the rest of the codebase — no project-wide ESM/CJS decision was needed.
 - Refactored `seedService.seed()` to extract a pure `buildCustomerRow(customer, referenceCities)` function so the "no reference match → null lat/lon, no throw" and "countryCode mismatch → no match" branches (Task 5) are unit-testable without a database, keeping only the idempotency check (AC #3, inherently DB-level) as an integration test against the real Postgres instance.
+- **Code review (bmad-code-review, 2026-07-14):** 3 parallel adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor) found and I reproduced a real bug: nothing in the codebase loaded `.env`, so a clean shell without a manually-exported `DATABASE_URL` failed 1/8 tests (`SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string`) despite the story's own Completion Notes claiming "8/8 pass" — that claim was only true because of a leftover exported env var in the implementer's shell session. Fixed by adding Node's built-in `--env-file-if-exists=.env` flag to all four `package.json` scripts (zero new dependency). Also fixed: ambiguous "no match" logging (now distinguishes "no reference entry" from "known city, wrong countryCode"), a missing guard against malformed `customer.location` (was a raw `TypeError` crash), and an uncommented diacritics regex. Acceptance Auditor found zero AC/AD violations independent of this bug.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created
 - All 3 ACs verified against the real 15-row `seed-customers.json` dataset: migration creates the exact column set + `UNIQUE (name, telepules)` constraint (AC #1); seed populates all 15 rows with lat/lon geocoded via `reference/city-coordinates.json`, including the accent-insensitive `"Kraków"` → `"krakow"` match (AC #2); running the seed twice leaves the row count at 15, enforced by the DB constraint + `ON CONFLICT DO NOTHING`, not application logic (AC #3)
 - The real dataset never exercises the "unmatched city" or "Budapest district" branches (every seed city resolves cleanly) — both are covered instead by `test/seedService.test.js`'s synthetic-city unit tests, per the story's Dev Notes
-- 8/8 automated tests pass (`node --test`): 3 `normalizeCity` cases, 4 `buildCustomerRow` cases (match, no-match, countryCode-mismatch, telepules-preserves-original-string), 1 seed-idempotency integration case against the live Postgres instance
 - `node-pg-migrate`'s exact patch version was confirmed as `8.0.4` via `npm view node-pg-migrate version` at install time (resolves the source disagreement flagged in ARCHITECTURE-SPINE.md's Stack table)
+- **Post-review:** 10/10 automated tests pass (`node --test`) in a clean shell with no manually-exported env vars — verified by reproducing the original failure (`unset DATABASE_URL`), applying the `--env-file-if-exists` fix, and re-running. 2 tests added during review (malformed-location guard coverage).
 
 ### File List
 
-- `package.json` (new)
+- `package.json` (modified — script fix)
 - `package-lock.json` (new)
 - `.env` (new — gitignored, not committed; contains local `DATABASE_URL=postgres://hf2:hf2@localhost:5434/hf2` for this dev environment's existing Postgres container)
 - `migrations/1784061008370_create-customers-table.js` (new)
 - `src/db/pool.js` (new)
-- `src/lib/normalizeCity.js` (new)
-- `src/services/seedService.js` (new)
+- `src/lib/normalizeCity.js` (modified — added explanatory comment)
+- `src/services/seedService.js` (modified — malformed-location guard, distinguished log messages)
 - `scripts/seed.js` (new)
 - `test/normalizeCity.test.js` (new)
-- `test/seedService.test.js` (new)
+- `test/seedService.test.js` (modified — 2 tests added for the malformed-location guard)
 - `test/seedIdempotency.test.js` (new)
 
 ## Change Log
 
 - 2026-07-14: Implemented Story 1.1 end-to-end (scaffold, migration, normalization, seed workflow, tests). All 3 ACs satisfied and verified against the live Postgres instance; 8/8 automated tests passing. Status moved to `review`.
+- 2026-07-14: Code review (bmad-code-review) — 0 decision-needed, 4 patch (all fixed), 4 deferred, 6 dismissed as noise. Fixed a real test-reproducibility bug (`DATABASE_URL` not auto-loaded), ambiguous logging, a malformed-location crash risk, and an uncommented regex. 10/10 tests pass in a clean shell. Status moved to `done`.

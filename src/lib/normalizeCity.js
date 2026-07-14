@@ -1,3 +1,5 @@
+// Matches Unicode combining diacritical marks (U+0300-U+036F), which NFD
+// normalization splits accented letters into (e.g. "ó" -> "o" + U+0301).
 const DIACRITICS_REGEX = /[̀-ͯ]/g;
 
 function normalizeCity(city) {

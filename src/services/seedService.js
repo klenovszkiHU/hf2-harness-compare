@@ -17,13 +17,24 @@ function findCoordinates(referenceCities, city, countryCode) {
 }
 
 function buildCustomerRow(customer, referenceCities) {
-  const { name, budget, location, note } = customer;
+  const { name, budget, note } = customer;
+  const location = customer.location || {};
   const { city, countryCode } = location;
 
+  if (!city || !countryCode) {
+    console.warn(`Customer "${name}" has an incomplete location (city="${city}", countryCode="${countryCode}") — lat/lon will be null.`);
+    return { name, telepules: city ?? null, lat: null, lon: null, budget: budget ?? null, note: note ?? null };
+  }
+
   const match = findCoordinates(referenceCities, city, countryCode);
+  const normalizedCity = normalizeCity(city);
+  const nearMiss = !match && referenceCities.some((entry) => entry.normalizedCity === normalizedCity);
 
   if (!match) {
-    console.warn(`No geocoding match for city "${city}" (${countryCode}) — customer "${name}" will have null lat/lon.`);
+    const reason = nearMiss
+      ? `known city but countryCode "${countryCode}" doesn't match the reference entry`
+      : 'no reference entry for this city at all';
+    console.warn(`No geocoding match for city "${city}" (${countryCode}) — customer "${name}" will have null lat/lon (${reason}).`);
   }
 
   return {
