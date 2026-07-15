@@ -58,7 +58,7 @@ action_items:
   - epic: 1
     action: "Run the actual documented sequence (docker compose up -d -> migrate -> seed -> start -> curl) on a genuinely fresh environment to confirm README.md and docker-compose.yml work as written, not just that they validate syntactically."
     owner: "Klenovszki"
-    status: open
+    status: done
   - epic: 1
     action: "Skim deferred-work.md once, as a batch, before this repo is considered archived/final."
     owner: "Klenovszki"
