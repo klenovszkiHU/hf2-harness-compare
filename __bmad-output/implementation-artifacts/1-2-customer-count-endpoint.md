@@ -4,7 +4,7 @@ baseline_commit: 9465ba7dd3fe4c8ea19f7e5e2b2f3b292a43f140
 
 # Story 1.2: Customer Count Endpoint
 
-Status: review
+Status: done
 
 ## Story
 
@@ -45,6 +45,14 @@ so that I know how many customers are currently seeded.
   - [x] Test: two consecutive calls to `count()` reflect the same value when the table hasn't changed (guards against any accidental caching being introduced later — AC #2)
   - [x] Test: `PORT` env var — extracted a small `resolvePort()` function (exported alongside `app`) so default-3000 and env-override behavior are both directly unit-tested without process/module-cache gymnastics (AC #3)
 
+### Review Findings
+
+- [x] [Review][Patch] No automated test exercises the DB-error → 500 path (AC #5) — the Completion Notes claimed it "verified" based only on manual smoke-testing, not the automated suite [src/server.js; test/customersRoute.test.js]
+- [x] [Review][Patch] `resolvePort()` returns a `number` (3000) for the default but a raw `string` (e.g. `"4321"`) when `PORT` is set — type inconsistency at a config boundary [src/server.js]
+- [x] [Review][Defer] Testing the empty-table case (AC #4) at the HTTP/integration layer would require either a committed truncate+reseed (reintroducing the exact test-isolation race risk the transactional service-layer test was built to avoid) or adding query-injection to the route layer (unwarranted scope) [test/customersRoute.test.js] — deferred, pre-existing trade-off, same class as Story 1.1's already-deferred test-isolation item
+- [x] [Review][Defer] `app.listen()` has no `.on('error', ...)` handler for a port-already-in-use failure [src/server.js] — deferred, pre-existing: no AC requires graceful port-conflict handling for this single-instance benchmark service
+- [x] [Review][Defer] `COUNT(*)` → `Number(...)` coercion has no guard against exceeding `Number.MAX_SAFE_INTEGER` [src/services/customerService.js] — deferred, pre-existing: unreachable at realistic table sizes, same reasoning already applied to the `budget` numeric precision in Story 1.1's review
+
 ## Dev Notes
 
 - **Architecture is fully fixed for this story** — read `__bmad-output/planning-artifacts/architecture/architecture-hf2-customer-distance-service-2026-07-14/ARCHITECTURE-SPINE.md` in full before starting. Relevant ADs: AD-1 (Express, no ORM), AD-2 (server never seeds), AD-7 (config ownership — `DATABASE_URL` in `pool.js`, `PORT` in `server.js`, nowhere else), AD-8 (`node:test`), AD-9 (response shape + numeric coercion), paradigm (routes → services → db, one direction only).
@@ -78,22 +86,24 @@ claude-sonnet-5 (Claude Code)
 - Manually smoke-tested `src/server.js` end-to-end before writing automated tests: started it on a throwaway port against the live Postgres instance, `curl`'d `/customers/count` → `{"count":15}` (200), and an unmounted path → 404 (Express's default, confirming no catch-all is needed).
 - `customerService.count()` was given an optional `queryable` parameter (defaults to the shared pool) specifically so the empty-table test (AC #4) could run inside an uncommitted transaction on a dedicated client — this keeps the DELETE invisible to every other connection (including other test files' connections), so the destructive-looking test never actually mutates the shared dev database or races with other tests.
 - `resolvePort()` was extracted out of the `require.main === module` guard as its own exported function so the PORT-default and PORT-override behavior (AC #3) could be unit-tested directly, instead of relying on fragile process-spawning or `require.cache` manipulation.
+- **Code review (bmad-code-review, 2026-07-15):** 3 parallel adversarial layers found that AC #5 (DB error → 500) was claimed "verified" in the Completion Notes below based only on manual smoke-testing — no automated test actually forced the service to reject and asserted the 500 response. Fixed by monkey-patching `customerService.count` inside a test to throw, then restoring it. Also fixed a real (if minor) type inconsistency: `resolvePort()` returned a `number` for the default but a raw `string` when `PORT` was set — now always coerced via `Number(...)`. 3 items deferred (empty-table-at-HTTP-layer testing, `app.listen()` port-conflict handling, `COUNT(*)` BigInt overflow) as pre-existing, out-of-scope trade-offs consistent with Story 1.1's review.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created
 - All 5 ACs verified: migration/count-shape (AC #1, `{"count": N}` as a number), no caching (AC #2, every call re-queries), PORT default/override (AC #3, unit-tested via `resolvePort()`), empty-table → `0` (AC #4, transactional test), DB-error → 500 (AC #5, error-handling middleware wired and route forwards rejections via `next(err)`)
-- 17/17 automated tests pass in a clean shell (`unset DATABASE_URL PORT` before `npm test`) — explicitly re-verified this per Story 1.1's code-review learning, not assumed from a working session's leftover env
 - `customers` table confirmed unchanged (still 15 rows) after the full test run, including the empty-table transactional test
+- **Post-review:** 18/18 automated tests pass (`node --test`) in a clean shell (`unset DATABASE_URL PORT`) — includes the new AC #5 test added during review
 
 ### File List
 
-- `src/server.js` (new)
+- `src/server.js` (new; modified during review — `resolvePort()` coercion fix)
 - `src/routes/customers.js` (new)
 - `src/services/customerService.js` (new)
 - `test/customerService.test.js` (new)
-- `test/customersRoute.test.js` (new)
+- `test/customersRoute.test.js` (new; modified during review — AC #5 test added, resolvePort test updated for numeric coercion)
 
 ## Change Log
 
 - 2026-07-14: Implemented Story 1.2 end-to-end (Express bootstrap, route, service, tests). All 5 ACs satisfied and verified against the live Postgres instance; 17/17 automated tests passing in a clean shell. Status moved to `review`.
+- 2026-07-15: Code review (bmad-code-review) — 0 decision-needed, 2 patch (both fixed), 3 deferred, 12 dismissed as noise. Fixed a missing automated test for AC #5 (the story's own "verified" claim was only manually smoke-tested) and a resolvePort() type inconsistency. 18/18 tests pass in a clean shell. Status moved to `done`.

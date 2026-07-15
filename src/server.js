@@ -12,7 +12,7 @@ app.use((err, req, res, next) => {
 });
 
 function resolvePort() {
-  return process.env.PORT || 3000;
+  return Number(process.env.PORT) || 3000;
 }
 
 if (require.main === module) {
