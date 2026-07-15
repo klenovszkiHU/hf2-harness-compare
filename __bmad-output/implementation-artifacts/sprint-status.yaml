@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-14
-last_updated: 2026-07-14
+last_updated: 2026-07-15
 project: hf2-customer-distance-service
 project_key: NOKEY
 tracking_system: file-system
@@ -52,4 +52,14 @@ development_status:
   1-1-idempotent-customer-seed-geocoding: done
   1-2-customer-count-endpoint: done
   1-3-customers-ranked-by-distance-endpoint: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
+
+action_items:
+  - epic: 1
+    action: "Run the actual documented sequence (docker compose up -d -> migrate -> seed -> start -> curl) on a genuinely fresh environment to confirm README.md and docker-compose.yml work as written, not just that they validate syntactically."
+    owner: "Klenovszki"
+    status: open
+  - epic: 1
+    action: "Skim deferred-work.md once, as a batch, before this repo is considered archived/final."
+    owner: "Klenovszki"
+    status: open
