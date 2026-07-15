@@ -4,6 +4,12 @@ const cityCoordinates = require('../../reference/city-coordinates.json');
 
 const BUDAPEST = cityCoordinates.find((entry) => entry.normalizedCity === 'budapest');
 
+if (!BUDAPEST) {
+  throw new Error(
+    'reference/city-coordinates.json has no "budapest" entry — cannot compute distanceKm'
+  );
+}
+
 // Accepts an optional queryable (a pg.Pool or a checked-out pg.Client) so
 // tests can run this inside an uncommitted transaction without touching
 // the shared pool's connections.

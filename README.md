@@ -13,7 +13,12 @@ A small, offline REST service over Postgres: idempotent seed + geocoding, `GET /
 docker compose up -d
 ```
 
-This starts a `postgres:16-alpine` container named `hf2-postgres` on `localhost:5434`, with database/user/password all `hf2`.
+This starts a `postgres:16-alpine` container named `hf2-postgres` on `localhost:5434`, with database/user/password all `hf2`. Wait for it to become healthy before continuing:
+
+```
+docker compose ps
+# hf2-postgres should show "healthy" — if it still says "starting", wait a few seconds and re-check
+```
 
 Create a `.env` file in the project root (gitignored) with the connection string:
 

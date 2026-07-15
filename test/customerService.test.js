@@ -106,3 +106,50 @@ test('byDistance() sorts null-coordinate customers after every known-distance cu
     client.release();
   }
 });
+
+test('byDistance() breaks ties by name when two DIFFERENT raw distances round to the same 1-decimal value (uncommitted)', async () => {
+  // 49.3979 and 49.3981 are ~211.270km and ~211.293km from Budapest respectively
+  // (different raw haversine output) but both round to 211.3 — the exact
+  // rounding-collision scenario AC #4 names explicitly (e.g. 213.96/214.04 -> 214.0).
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM customers');
+    await client.query(
+      `INSERT INTO customers (name, telepules, lat, lon, budget, note) VALUES
+       ('Zsolt Round', 'Testville', 49.3979, 19.0402, NULL, NULL),
+       ('Adam Round', 'Testville', 49.3981, 19.0402, NULL, NULL)`
+    );
+    const rows = await byDistance(client);
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].distanceKm, 211.3);
+    assert.equal(rows[1].distanceKm, 211.3);
+    assert.equal(rows[0].name, 'Adam Round');
+    assert.equal(rows[1].name, 'Zsolt Round');
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
+});
+
+test('byDistance() breaks ties by name when two customers both have null distanceKm (uncommitted)', async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM customers');
+    await client.query(
+      `INSERT INTO customers (name, telepules, lat, lon, budget, note) VALUES
+       ('Zsolt Null', 'Nowhereville', NULL, NULL, NULL, NULL),
+       ('Adam Null', 'Nowhereville', NULL, NULL, NULL, NULL)`
+    );
+    const rows = await byDistance(client);
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].distanceKm, null);
+    assert.equal(rows[1].distanceKm, null);
+    assert.equal(rows[0].name, 'Adam Null');
+    assert.equal(rows[1].name, 'Zsolt Null');
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
+});

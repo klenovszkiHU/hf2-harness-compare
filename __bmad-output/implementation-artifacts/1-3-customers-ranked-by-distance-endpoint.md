@@ -4,7 +4,7 @@ baseline_commit: 6abad37b29426e24da44324ef24278bef5289b00
 
 # Story 1.3: Customers Ranked By Distance Endpoint
 
-Status: review
+Status: done
 
 ## Story
 
@@ -52,6 +52,17 @@ so that I can see all customers ordered by proximity to Budapest, each annotated
   - [x] Document, in order, in `README.md`: starting Postgres (`docker compose up -d`), running the migration (`npm run migrate`), seeding (`npm run seed`), starting the server (`npm start`), running the tests (`npm test`)
   - [x] Include the two example `curl` commands from SPEC's success signal (`GET /customers/count`, `GET /customers/by-distance`) so the documented command sequence is directly demonstrable, matching SPEC's own success signal wording
 
+### Review Findings
+
+- [x] [Review][Patch] AC #4's rounding-collision tie-break scenario (two customers with *different* raw distances that both round to the same 1-decimal value, e.g. 213.96 km and 214.04 km both → 214.0) is unverified — the existing tie-break test uses two customers at identical coordinates instead [test/customerService.test.js]
+- [x] [Review][Patch] AC #4's null-vs-null tie-break branch (`compareByDistance`'s `a.distanceKm === null && b.distanceKm === null` case) is never exercised — the existing null-sort test only inserts one null-coordinate customer [test/customerService.test.js]
+- [x] [Review][Patch] `BUDAPEST` lookup has no fallback — if `reference/city-coordinates.json` ever lacked a `budapest` entry, `BUDAPEST.lat` throws an undiagnosed `TypeError` at module load, crashing the whole server on startup, not just this endpoint [src/services/customerService.js]
+- [x] [Review][Patch] `haversine.js`'s `Math.sqrt(1 - a)` can receive a slightly-negative `a` from floating-point rounding for near-antipodal coordinates, yielding `NaN` instead of a real distance [src/lib/haversine.js]
+- [x] [Review][Patch] README doesn't mention waiting for the `hf2-postgres` container's healthcheck before running `npm run migrate` — a fresh clone following the steps quickly could hit connection-refused [README.md]
+- [x] [Review][Defer] AC #7 (empty table → `[]`) is only tested at the service layer (`byDistance(client)` inside an uncommitted transaction), not through the actual `GET /customers/by-distance` HTTP route the AC's wording describes [test/customersRoute.test.js] — deferred, same precedent as Story 1.2's equivalent AC #4: testing this at the HTTP layer would require either a committed truncate+reseed (reintroducing the test-isolation race risk) or route-level query injection (unwarranted scope)
+- [x] [Review][Defer] SPEC's "small, focused commits" delivery constraint was not honored literally — each story landed as one commit (plus separate docs commits), not a sequence of small commits within the story itself [git history] — deferred: already acknowledged as a delivery-process characteristic in ARCHITECTURE-SPINE.md's own Deferred section, not a code defect to patch
+- [x] [Review][Defer] No pagination, envelope, or DB-pushed-down ranking (e.g. Postgres `earthdistance`) for `/customers/by-distance` [src/services/customerService.js] — deferred: explicit architecture decisions (AD-1 no ORM/raw SQL, AD-5 haversine computed in JS) and no SPEC requirement for pagination at this scale (15 rows)
+
 ## Dev Notes
 
 - **Architecture is fully fixed for this story** — read `__bmad-output/planning-artifacts/architecture/architecture-hf2-customer-distance-service-2026-07-14/ARCHITECTURE-SPINE.md` in full before starting. Relevant ADs: AD-1 (no ORM), AD-5 (haversine pure module + null contract), AD-6 (reuse the reference-file lookup pattern, don't duplicate data), AD-7 (no new config reads — reuse `src/db/pool.js`), AD-8 (`node:test`), AD-9 (exact response shape + numeric coercion — this is the second time this project has hit the "pg returns numeric columns as strings" gotcha; treat it as an established pattern, not a one-off).
@@ -88,25 +99,28 @@ claude-sonnet-5 (Claude Code)
 - Manually smoke-tested `GET /customers/by-distance` end-to-end against the live Postgres instance before writing automated tests: confirmed a bare array, Budapest customer first with `distanceKm: 0`, correct 6-key shape, and `budget` as a JS number (not a string).
 - Verified `docker-compose.yml` with `docker compose config` (syntax/schema validation only) rather than `docker compose up -d`, since the `hf2-postgres` container from a different branch's compose file is already running under the same container name on this machine — starting a second one here would conflict. The compose file itself is correct and reproducible from a fresh environment; this dev environment just already has the container satisfied another way.
 - Reused `reference/city-coordinates.json`'s `budapest` entry (via `require()`, cached automatically) for the reference point, per the story's explicit instruction not to hardcode a duplicate literal.
+- **Code review (bmad-code-review, 2026-07-15):** 3 parallel adversarial layers found that AC #4's own named scenario — two customers with *different* raw distances rounding to the same 1-decimal value — was untested (the original tie-break test used two customers at identical coordinates, and the null-vs-null tie-break branch had only one null-coordinate customer, never two). Fixed both with real coordinates verified via a small script to produce genuinely different raw haversine outputs (211.270 km / 211.293 km) that both round to 211.3. Also fixed: a `BUDAPEST` lookup with no fallback (would crash server startup with an undiagnosed `TypeError` if the reference file ever lacked a Budapest entry — now throws a clear error at module load instead), a floating-point edge case in `haversine.js` (`Math.sqrt(1-a)` could receive a negative number for near-antipodal coordinates), and a README gap (no mention of waiting for the Postgres healthcheck). 3 items deferred (HTTP-layer empty-table test, the project's non-atomic-commit delivery pattern, pagination/envelope) as pre-existing or explicit architecture decisions.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created
-- All 7 ACs verified against the real 15-row dataset and synthetic edge cases: exact bare-array response shape with numeric coercion (AC #1), Budapest customer at `distanceKm: 0` sorting first (AC #2), null-coordinate customers sorting last (AC #3), name tie-break on rounded `distanceKm` (AC #4), the 3 required haversine unit tests (AC #5), DB-error → 500 (AC #6, automated test — not just manual, learning applied from Story 1.2's review), empty table → `[]` (AC #7)
-- 28/28 automated tests pass in a clean shell (`unset DATABASE_URL PORT` before `npm test`)
+- All 7 ACs verified against the real 15-row dataset and synthetic edge cases: exact bare-array response shape with numeric coercion (AC #1), Budapest customer at `distanceKm: 0` sorting first (AC #2), null-coordinate customers sorting last (AC #3), name tie-break on rounded `distanceKm` including the rounding-collision and null-vs-null cases (AC #4), the 3 required haversine unit tests (AC #5), DB-error → 500 (AC #6, automated test — not just manual, learning applied from Story 1.2's review), empty table → `[]` (AC #7)
 - `customers` table confirmed unchanged (still 15 rows) after the full test run, including all uncommitted-transaction synthetic-data tests
+- **Post-review:** 30/30 automated tests pass (`node --test`) in a clean shell (`unset DATABASE_URL PORT`) — includes the 2 new AC #4 tests added during review
 
 ### File List
 
-- `src/lib/haversine.js` (new)
+- `src/lib/haversine.js` (new; modified during review — floating-point guard)
 - `src/routes/customers.js` (modified — added `GET /by-distance`)
-- `src/services/customerService.js` (modified — added `byDistance()`)
+- `src/services/customerService.js` (modified — added `byDistance()`; modified during review — `BUDAPEST` fallback guard)
 - `docker-compose.yml` (new)
-- `README.md` (new)
+- `README.md` (new; modified during review — healthcheck-wait note)
 - `test/haversine.test.js` (new)
 - `test/customerService.test.js` (modified — added `byDistance()` tests)
 - `test/customersRoute.test.js` (modified — added `/by-distance` integration + 500 tests)
+- `test/customerService.test.js` (modified during review — 2 tests added for AC #4's rounding-collision and null-vs-null tie-break scenarios)
 
 ## Change Log
 
 - 2026-07-15: Implemented Story 1.3 end-to-end (haversine, route, service, docker-compose.yml, README, tests). All 7 ACs satisfied and verified against the live Postgres instance; 28/28 automated tests passing in a clean shell. Status moved to `review`.
+- 2026-07-15: Code review (bmad-code-review) — 0 decision-needed, 5 patch (all fixed), 3 deferred, 12 dismissed as noise. Fixed 2 untested AC #4 scenarios (rounding-collision and null-vs-null tie-breaks), a BUDAPEST-lookup crash risk, a haversine floating-point edge case, and a README gap. 30/30 tests pass in a clean shell. Status moved to `done`.
