@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hf2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hf2
+      POSTGRES_PASSWORD: hf2
+      POSTGRES_DB: hf2
+    ports:
+      - "5434:5432"
+    volumes:
+      - hf2_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hf2 -d hf2"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  hf2_pgdata:

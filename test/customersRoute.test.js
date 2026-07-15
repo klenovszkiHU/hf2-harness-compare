@@ -40,6 +40,41 @@ test('GET /customers/count returns 500 with {"error": "internal error"} when the
   }
 });
 
+test('GET /customers/by-distance returns a bare array, ordered, with Budapest first', async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address();
+    const response = await fetch(`http://localhost:${port}/customers/by-distance`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.ok(Array.isArray(body), 'response body must be a bare array');
+    assert.equal(body[0].distanceKm, 0);
+    assert.equal(body[0].name, 'Anna Kovács');
+  } finally {
+    server.close();
+  }
+});
+
+test('GET /customers/by-distance returns 500 with {"error": "internal error"} when the service rejects', async () => {
+  const server = app.listen(0);
+  const originalByDistance = customerService.byDistance;
+  customerService.byDistance = async () => {
+    throw new Error('simulated DB failure');
+  };
+  try {
+    const { port } = server.address();
+    const response = await fetch(`http://localhost:${port}/customers/by-distance`);
+    const body = await response.json();
+
+    assert.equal(response.status, 500);
+    assert.deepEqual(body, { error: 'internal error' });
+  } finally {
+    customerService.byDistance = originalByDistance;
+    server.close();
+  }
+});
+
 test('GET /nonexistent falls through to Express default 404', async () => {
   const server = app.listen(0);
   try {

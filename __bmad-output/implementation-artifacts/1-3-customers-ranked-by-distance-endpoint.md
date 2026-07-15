@@ -1,6 +1,10 @@
+---
+baseline_commit: 6abad37b29426e24da44324ef24278bef5289b00
+---
+
 # Story 1.3: Customers Ranked By Distance Endpoint
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,33 +24,33 @@ so that I can see all customers ordered by proximity to Budapest, each annotated
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `src/lib/haversine.js` — pure distance function (AC: #5)
-  - [ ] Export a pure function `(lat1, lon1, lat2, lon2) => km`, importing nothing beyond the standard library (AD-5) — no DB, no HTTP, no imports from `src/services` or `src/db`
-  - [ ] **Null-input contract:** if `lat1`, `lon1`, `lat2`, or `lon2` is `null` (or `undefined`), return `null` — never `NaN`, never throw. This is the exact behavior `customerService.byDistance()` (Task 3) depends on to produce `distanceKm: null` without its own duplicate null-check (AD-5's explicit rule)
-  - [ ] Standard haversine formula, Earth radius 6371 km
-- [ ] Task 2: `src/routes/customers.js` — add the new route (AC: #1)
-  - [ ] Add `GET /by-distance` to the **existing** router from Story 1.2 (do not create a second router or a new file) — delegate to `customerService.byDistance()`, shape the response via `res.json(...)`
-  - [ ] Same error-forwarding pattern as `/count` (Story 1.2): `try/catch` + `next(err)`, so a rejection reaches `src/server.js`'s existing error middleware (AC #6) — do not add a second error handler
-- [ ] Task 3: `src/services/customerService.js` — add `byDistance()` (AC: #1, #2, #3, #4, #7)
-  - [ ] Add a `byDistance(queryable = pool)` export alongside the existing `count()` (same file, same optional-`queryable` pattern established in Story 1.2 for transactional testability) — query all rows: `SELECT id, name, telepules, lat, lon, budget, note FROM customers`
-  - [ ] Get Budapest's reference coordinates by reading `reference/city-coordinates.json` (e.g. `require('../../reference/city-coordinates.json')` — Node's `require()` cache means this only loads/parses once per process, no need for manual caching) and finding the entry where `normalizedCity === 'budapest'` — **do not hardcode a second copy of Budapest's lat/lon as a literal**; that file is already the single source of truth for this data (same reuse principle as `src/services/seedService.js` in Story 1.1)
-  - [ ] For each row, compute `distanceKm` via `src/lib/haversine.js` against the Budapest reference point, rounded to 1 decimal (`Math.round(km * 10) / 10`) when non-null
-  - [ ] **Coerce `budget` to a JS `number`** (or `null` if the column is `null`) before returning — `pg` returns `numeric(10,2)` columns as strings by default, the same gotcha already fixed for `COUNT(*)` in Story 1.2's `count()`; do not ship `budget` as a string
-  - [ ] Sort: ascending by `distanceKm`, with `null` sorting after every numeric value, ties (including two `0`s or two `null`s) broken by `name` ascending — this sort happens in JS after fetching all rows, since `distanceKm` isn't a stored column
-  - [ ] Return exactly `{id, name, telepules, budget, note, distanceKm}` per row, in that key order, `lat`/`lon` excluded from the shape
-- [ ] Task 4: Automated tests (uses `node:test`, per AD-8)
-  - [ ] The 3 required `haversine.js` unit tests (AC #5): Budapest–Vienna ≈214 km (assert within a small tolerance, e.g. ±1 km, not an exact float match), 0 km self-distance (same point twice), `null` input (any of the 4 args) returns `null`
-  - [ ] Test: `customerService.byDistance()` against the live 15-row dataset — assert the Budapest customer (`Anna Kovács`) is first with `distanceKm: 0`, the list is non-decreasing by `distanceKm`, and every element has exactly the 6 expected keys (no `lat`/`lon` leaking through)
-  - [ ] Test: `budget` in the response is a `number`, not a string (same class of regression as Story 1.2's `COUNT(*)` gotcha)
-  - [ ] Test: tie-break by `name` — construct a small in-memory scenario (or use `byDistance(client)` inside an uncommitted transaction, same technique as Story 1.2's empty-table test, to insert two synthetic same-distance rows) confirming `name` ascending order for ties
-  - [ ] Test: null-coordinate customers sort last — same transactional-test technique: insert a synthetic customer with `lat`/`lon = null`, confirm it appears after all known-distance customers with `distanceKm: null`
-  - [ ] Integration test: `GET /customers/by-distance` over HTTP (same `app.listen(0)` pattern as Story 1.2) returns `200` with the ordering/shape holding for the real dataset, and the response is a bare array (`Array.isArray(body)`, AC #1)
-  - [ ] Test: `GET /customers/by-distance` returns `500` `{"error": "internal error"}` on a forced service rejection (same monkey-patch technique used for `/count` in Story 1.2's code review)
-  - [ ] Test: `byDistance()` returns `[]` for an empty table (AC #7) — same uncommitted-transaction technique as the other synthetic-data tests above
-- [ ] Task 5: `docker-compose.yml` + `README.md` (AC: none directly — SPEC's NFR7 and success signal; this is the last story in Epic 1, and only now do all the pieces it must document exist)
-  - [ ] **Add a `docker-compose.yml` to the repo root.** There is currently no `docker-compose.yml` anywhere in this repository — the `hf2-postgres` container all 3 stories have developed against so far was started from a *different* git branch's compose file and happens to still be running on this machine. That is not reproducible from a fresh clone of this branch. Define a `postgres` service matching the config already in use (so existing local state keeps working): image `postgres:16-alpine`, `container_name: hf2-postgres`, `POSTGRES_USER=hf2`, `POSTGRES_PASSWORD=hf2`, `POSTGRES_DB=hf2`, port mapping `"5434:5432"`, a named volume for data persistence
-  - [ ] Document, in order, in `README.md`: starting Postgres (`docker compose up -d`), running the migration (`npm run migrate`), seeding (`npm run seed`), starting the server (`npm start`), running the tests (`npm test`)
-  - [ ] Include the two example `curl` commands from SPEC's success signal (`GET /customers/count`, `GET /customers/by-distance`) so the documented command sequence is directly demonstrable, matching SPEC's own success signal wording
+- [x] Task 1: `src/lib/haversine.js` — pure distance function (AC: #5)
+  - [x] Export a pure function `(lat1, lon1, lat2, lon2) => km`, importing nothing beyond the standard library (AD-5) — no DB, no HTTP, no imports from `src/services` or `src/db`
+  - [x] **Null-input contract:** if `lat1`, `lon1`, `lat2`, or `lon2` is `null` (or `undefined`), return `null` — never `NaN`, never throw. This is the exact behavior `customerService.byDistance()` (Task 3) depends on to produce `distanceKm: null` without its own duplicate null-check (AD-5's explicit rule)
+  - [x] Standard haversine formula, Earth radius 6371 km
+- [x] Task 2: `src/routes/customers.js` — add the new route (AC: #1)
+  - [x] Add `GET /by-distance` to the **existing** router from Story 1.2 (do not create a second router or a new file) — delegate to `customerService.byDistance()`, shape the response via `res.json(...)`
+  - [x] Same error-forwarding pattern as `/count` (Story 1.2): `try/catch` + `next(err)`, so a rejection reaches `src/server.js`'s existing error middleware (AC #6) — do not add a second error handler
+- [x] Task 3: `src/services/customerService.js` — add `byDistance()` (AC: #1, #2, #3, #4, #7)
+  - [x] Add a `byDistance(queryable = pool)` export alongside the existing `count()` (same file, same optional-`queryable` pattern established in Story 1.2 for transactional testability) — query all rows: `SELECT id, name, telepules, lat, lon, budget, note FROM customers`
+  - [x] Get Budapest's reference coordinates by reading `reference/city-coordinates.json` (e.g. `require('../../reference/city-coordinates.json')` — Node's `require()` cache means this only loads/parses once per process, no need for manual caching) and finding the entry where `normalizedCity === 'budapest'` — **do not hardcode a second copy of Budapest's lat/lon as a literal**; that file is already the single source of truth for this data (same reuse principle as `src/services/seedService.js` in Story 1.1)
+  - [x] For each row, compute `distanceKm` via `src/lib/haversine.js` against the Budapest reference point, rounded to 1 decimal (`Math.round(km * 10) / 10`) when non-null
+  - [x] **Coerce `budget` to a JS `number`** (or `null` if the column is `null`) before returning — `pg` returns `numeric(10,2)` columns as strings by default, the same gotcha already fixed for `COUNT(*)` in Story 1.2's `count()`; do not ship `budget` as a string
+  - [x] Sort: ascending by `distanceKm`, with `null` sorting after every numeric value, ties (including two `0`s or two `null`s) broken by `name` ascending — this sort happens in JS after fetching all rows, since `distanceKm` isn't a stored column
+  - [x] Return exactly `{id, name, telepules, budget, note, distanceKm}` per row, in that key order, `lat`/`lon` excluded from the shape
+- [x] Task 4: Automated tests (uses `node:test`, per AD-8)
+  - [x] The 3 required `haversine.js` unit tests (AC #5): Budapest–Vienna ≈214 km (assert within a small tolerance, e.g. ±1 km, not an exact float match), 0 km self-distance (same point twice), `null` input (any of the 4 args) returns `null`
+  - [x] Test: `customerService.byDistance()` against the live 15-row dataset — assert the Budapest customer (`Anna Kovács`) is first with `distanceKm: 0`, the list is non-decreasing by `distanceKm`, and every element has exactly the 6 expected keys (no `lat`/`lon` leaking through)
+  - [x] Test: `budget` in the response is a `number`, not a string (same class of regression as Story 1.2's `COUNT(*)` gotcha)
+  - [x] Test: tie-break by `name` — construct a small in-memory scenario (or use `byDistance(client)` inside an uncommitted transaction, same technique as Story 1.2's empty-table test, to insert two synthetic same-distance rows) confirming `name` ascending order for ties
+  - [x] Test: null-coordinate customers sort last — same transactional-test technique: insert a synthetic customer with `lat`/`lon = null`, confirm it appears after all known-distance customers with `distanceKm: null`
+  - [x] Integration test: `GET /customers/by-distance` over HTTP (same `app.listen(0)` pattern as Story 1.2) returns `200` with the ordering/shape holding for the real dataset, and the response is a bare array (`Array.isArray(body)`, AC #1)
+  - [x] Test: `GET /customers/by-distance` returns `500` `{"error": "internal error"}` on a forced service rejection (same monkey-patch technique used for `/count` in Story 1.2's code review)
+  - [x] Test: `byDistance()` returns `[]` for an empty table (AC #7) — same uncommitted-transaction technique as the other synthetic-data tests above
+- [x] Task 5: `docker-compose.yml` + `README.md` (AC: none directly — SPEC's NFR7 and success signal; this is the last story in Epic 1, and only now do all the pieces it must document exist)
+  - [x] **Add a `docker-compose.yml` to the repo root.** There is currently no `docker-compose.yml` anywhere in this repository — the `hf2-postgres` container all 3 stories have developed against so far was started from a *different* git branch's compose file and happens to still be running on this machine. That is not reproducible from a fresh clone of this branch. Define a `postgres` service matching the config already in use (so existing local state keeps working): image `postgres:16-alpine`, `container_name: hf2-postgres`, `POSTGRES_USER=hf2`, `POSTGRES_PASSWORD=hf2`, `POSTGRES_DB=hf2`, port mapping `"5434:5432"`, a named volume for data persistence
+  - [x] Document, in order, in `README.md`: starting Postgres (`docker compose up -d`), running the migration (`npm run migrate`), seeding (`npm run seed`), starting the server (`npm start`), running the tests (`npm test`)
+  - [x] Include the two example `curl` commands from SPEC's success signal (`GET /customers/count`, `GET /customers/by-distance`) so the documented command sequence is directly demonstrable, matching SPEC's own success signal wording
 
 ## Dev Notes
 
@@ -77,12 +81,32 @@ This story creates: `src/lib/haversine.js`, `docker-compose.yml`, `README.md`, p
 
 ### Agent Model Used
 
-_(to be filled in by the dev agent during implementation)_
+claude-sonnet-5 (Claude Code)
 
 ### Debug Log References
+
+- Manually smoke-tested `GET /customers/by-distance` end-to-end against the live Postgres instance before writing automated tests: confirmed a bare array, Budapest customer first with `distanceKm: 0`, correct 6-key shape, and `budget` as a JS number (not a string).
+- Verified `docker-compose.yml` with `docker compose config` (syntax/schema validation only) rather than `docker compose up -d`, since the `hf2-postgres` container from a different branch's compose file is already running under the same container name on this machine — starting a second one here would conflict. The compose file itself is correct and reproducible from a fresh environment; this dev environment just already has the container satisfied another way.
+- Reused `reference/city-coordinates.json`'s `budapest` entry (via `require()`, cached automatically) for the reference point, per the story's explicit instruction not to hardcode a duplicate literal.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created
+- All 7 ACs verified against the real 15-row dataset and synthetic edge cases: exact bare-array response shape with numeric coercion (AC #1), Budapest customer at `distanceKm: 0` sorting first (AC #2), null-coordinate customers sorting last (AC #3), name tie-break on rounded `distanceKm` (AC #4), the 3 required haversine unit tests (AC #5), DB-error → 500 (AC #6, automated test — not just manual, learning applied from Story 1.2's review), empty table → `[]` (AC #7)
+- 28/28 automated tests pass in a clean shell (`unset DATABASE_URL PORT` before `npm test`)
+- `customers` table confirmed unchanged (still 15 rows) after the full test run, including all uncommitted-transaction synthetic-data tests
 
 ### File List
+
+- `src/lib/haversine.js` (new)
+- `src/routes/customers.js` (modified — added `GET /by-distance`)
+- `src/services/customerService.js` (modified — added `byDistance()`)
+- `docker-compose.yml` (new)
+- `README.md` (new)
+- `test/haversine.test.js` (new)
+- `test/customerService.test.js` (modified — added `byDistance()` tests)
+- `test/customersRoute.test.js` (modified — added `/by-distance` integration + 500 tests)
+
+## Change Log
+
+- 2026-07-15: Implemented Story 1.3 end-to-end (haversine, route, service, docker-compose.yml, README, tests). All 7 ACs satisfied and verified against the live Postgres instance; 28/28 automated tests passing in a clean shell. Status moved to `review`.

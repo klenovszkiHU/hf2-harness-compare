@@ -12,4 +12,13 @@ router.get('/count', async (req, res, next) => {
   }
 });
 
+router.get('/by-distance', async (req, res, next) => {
+  try {
+    const customers = await customerService.byDistance();
+    res.json(customers);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
